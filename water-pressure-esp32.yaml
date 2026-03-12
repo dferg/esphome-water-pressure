@@ -1,0 +1,114 @@
+substitutions:
+  name: "water-pressure"
+  friendly_name: "Water Pressure Monitor"
+  board: "esp32dev"
+
+  update_interval: "5s"
+
+  # Pressure transducer max rating (PSI)
+  max_psi: "200"
+
+  # Voltage divider correction factor: (R1 + R2) / R2
+  # Default assumes R1=4.7k, R2=10k -> 14.7/10 = 1.47
+  voltage_divider_factor: "1.47"
+
+  # Sensor friendly names
+  pressure_1_name: "Pressure 1"
+  pressure_2_name: "Pressure 2"
+  pressure_3_name: "Pressure 3"
+  pressure_4_name: "Pressure 4"
+
+  # ADC GPIO pins (must be ADC1 channels to avoid WiFi conflicts)
+  pressure_1_pin: "GPIO32"
+  pressure_2_pin: "GPIO33"
+  pressure_3_pin: "GPIO34"
+  pressure_4_pin: "GPIO35"
+
+esphome:
+  name: "${name}"
+  friendly_name: "${friendly_name}"
+  name_add_mac_suffix: true
+  project:
+    name: water-pressure.monitor
+    version: "1.0.0"
+
+esp32:
+  board: ${board}
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+
+ota:
+  platform: esphome
+
+wifi:
+  ap:
+    password: "12345678"
+
+captive_portal:
+
+esp32_improv:
+  authorizer: none
+
+improv_serial:
+
+dashboard_import:
+  package_import_url: github://USERNAME/water-pressure/water-pressure-esp32.yaml@main
+  import_full_config: false
+
+packages:
+  pressure_sensor_1: !include
+    file: common/pressure-sensor.yaml
+    vars:
+      sensor_id: pressure_1
+      sensor_name: "${pressure_1_name}"
+      sensor_pin: "${pressure_1_pin}"
+      sensor_update_interval: "${update_interval}"
+      sensor_max_psi: "${max_psi}"
+      sensor_voltage_divider_factor: "${voltage_divider_factor}"
+  pressure_sensor_2: !include
+    file: common/pressure-sensor.yaml
+    vars:
+      sensor_id: pressure_2
+      sensor_name: "${pressure_2_name}"
+      sensor_pin: "${pressure_2_pin}"
+      sensor_update_interval: "${update_interval}"
+      sensor_max_psi: "${max_psi}"
+      sensor_voltage_divider_factor: "${voltage_divider_factor}"
+  pressure_sensor_3: !include
+    file: common/pressure-sensor.yaml
+    vars:
+      sensor_id: pressure_3
+      sensor_name: "${pressure_3_name}"
+      sensor_pin: "${pressure_3_pin}"
+      sensor_update_interval: "${update_interval}"
+      sensor_max_psi: "${max_psi}"
+      sensor_voltage_divider_factor: "${voltage_divider_factor}"
+  pressure_sensor_4: !include
+    file: common/pressure-sensor.yaml
+    vars:
+      sensor_id: pressure_4
+      sensor_name: "${pressure_4_name}"
+      sensor_pin: "${pressure_4_pin}"
+      sensor_update_interval: "${update_interval}"
+      sensor_max_psi: "${max_psi}"
+      sensor_voltage_divider_factor: "${voltage_divider_factor}"
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    update_interval: 60s
+    entity_category: diagnostic
+
+  - platform: uptime
+    name: "Uptime"
+    update_interval: 60s
+    entity_category: diagnostic
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: config

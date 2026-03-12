@@ -1,0 +1,35 @@
+# Example consumer configuration for Home Assistant / ESPHome dashboard.
+#
+# Copy this file to your ESPHome config directory and customize the
+# substitutions below.  Only wifi credentials (via !secret) and the
+# package URL are required; everything else has sensible defaults.
+
+substitutions:
+  name: "my-water-pressure"
+  friendly_name: "Home Water Pressure"
+
+  # Give each sensor a meaningful label for your installation
+  pressure_1_name: "Main Supply"
+  pressure_2_name: "Zone 1"
+  pressure_3_name: "Zone 2"
+  pressure_4_name: "Zone 3"
+
+  # Override if your transducers have a different PSI rating
+  # max_psi: "150"
+
+  # Override if you measured a different voltage divider factor (see README)
+  # voltage_divider_factor: "1.52"
+
+  # Slower update interval to reduce network traffic
+  update_interval: "10s"
+
+packages:
+  water_pressure:
+    url: https://github.com/USERNAME/water-pressure
+    files: [water-pressure-esp32.yaml]
+    ref: main
+    refresh: 1d
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password

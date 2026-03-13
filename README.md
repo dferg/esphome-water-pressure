@@ -3,6 +3,8 @@
 An ESPHome project that uses an ESP32 to read water pressure from four
 FUSCH 200 PSI pressure transducers and report the values to Home Assistant.
 
+**Disclaimer:** This project was vibe coded. It suits my purposes. Use at your own risk.
+
 ## Bill of Materials
 
 | Qty | Part | Notes |
@@ -30,11 +32,11 @@ The transducer outputs 0.5–4.5 V.  The ESP32 ADC is only safe up to ~3.1 V,
 so a resistor divider scales the signal down.
 
 ```
-Transducer Signal ──┬── R1 (4.7 kΩ) ──┬── ESP32 ADC pin
-                    │                 │
-                    │                 R2 (10 kΩ)
-                    │                 │
-                   GND               GND
+Transducer Signal ─── R1 (4.7 kΩ) ───┬─── ESP32 ADC pin
+                                     │
+                                  R2 (10 kΩ)
+                                     │
+                                    GND
 ```
 
 With R1 = 4.7 k&Omega; and R2 = 10 k&Omega; the divider ratio is

@@ -41,3 +41,7 @@ packages:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret api_encryption_key

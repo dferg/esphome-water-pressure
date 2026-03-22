@@ -1,0 +1,324 @@
+spi:
+  type: octal
+  clk_pin: 8
+  data_pins:
+    - 39
+    - 40
+    - 41
+    - 42
+    - ignore_strapping_warning: true
+      number: 45
+    - ignore_strapping_warning: true
+      number: 46
+    - 47
+    - 48
+
+output:
+  - platform: ledc
+    frequency: 2000
+    pin: GPIO38
+    id: backlight_output
+
+light:
+  - platform: monochromatic
+    output: backlight_output
+    name: "LCD Backlight"
+    id: lcd_backlight
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+
+font:
+  - file: common/roboto.ttf
+    id: font_large
+    size: 32
+    glyphs: " 0123456789.-/PSIpsi"
+  - file: common/roboto.ttf
+    id: font_medium
+    size: 20
+    glyphs: " 0123456789.-/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  - file: common/roboto.ttf
+    id: font_small
+    size: 14
+    glyphs: " 0123456789.-/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz[]"
+
+color:
+  - id: color_green
+    hex: "00CC44"
+  - id: color_yellow
+    hex: "DDAA00"
+  - id: color_red
+    hex: "DD2200"
+  - id: color_white
+    hex: "FFFFFF"
+  - id: color_gray
+    hex: "888888"
+  - id: color_dark_gray
+    hex: "333333"
+  - id: color_cyan
+    hex: "00BBCC"
+  - id: color_bg
+    hex: "000000"
+
+globals:
+  - id: detail_sensor
+    type: int
+    initial_value: "0"
+  - id: min_psi
+    type: float[4]
+    initial_value: "{999.0f, 999.0f, 999.0f, 999.0f}"
+  - id: max_psi
+    type: float[4]
+    initial_value: "{-1.0f, -1.0f, -1.0f, -1.0f}"
+
+interval:
+  - interval: 2s
+    then:
+      - lambda: |-
+          float vals[4] = {
+            id(pressure_1).state,
+            id(pressure_2).state,
+            id(pressure_3).state,
+            id(pressure_4).state
+          };
+          for (int i = 0; i < 4; i++) {
+            if (!std::isnan(vals[i])) {
+              if (vals[i] < id(min_psi)[i]) id(min_psi)[i] = vals[i];
+              if (vals[i] > id(max_psi)[i]) id(max_psi)[i] = vals[i];
+            }
+          }
+
+display:
+  - platform: mipi_spi
+    id: main_display
+    model: t-display-s3
+    rotation: 270
+    update_interval: 1s
+    auto_clear_enabled: true
+    pages:
+      - id: page_dashboard
+        lambda: |-
+          int w = it.get_width();
+          int h = it.get_height();
+          float warn = ${psi_warn};
+          float crit = ${psi_crit};
+
+          // Header
+          it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
+          it.printf(4, 2, id(font_small), id(color_white), "Water Pressure");
+          if (!std::isnan(id(wifi_rssi).state)) {
+            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+          }
+
+          // 4-quadrant layout below header
+          float sensors[4] = {
+            id(pressure_1).state,
+            id(pressure_2).state,
+            id(pressure_3).state,
+            id(pressure_4).state
+          };
+          const char* names[4] = {
+            "${pressure_1_name}",
+            "${pressure_2_name}",
+            "${pressure_3_name}",
+            "${pressure_4_name}"
+          };
+
+          int half_w = w / 2;
+          int content_h = h - 22;
+          int half_h = content_h / 2;
+          int top = 22;
+
+          for (int i = 0; i < 4; i++) {
+            int qx = (i % 2) * half_w + 8;
+            int qy = top + (i / 2) * half_h + 4;
+
+            it.print(qx, qy, id(font_small), id(color_gray), names[i]);
+
+            Color c = id(color_green);
+            if (!std::isnan(sensors[i])) {
+              if (sensors[i] >= crit) c = id(color_red);
+              else if (sensors[i] >= warn) c = id(color_yellow);
+              it.printf(qx, qy + 18, id(font_medium), c, "%.1f PSI", sensors[i]);
+            } else {
+              it.print(qx, qy + 18, id(font_medium), id(color_gray), "--- PSI");
+            }
+          }
+
+      - id: page_detail
+        lambda: |-
+          int w = it.get_width();
+          int h = it.get_height();
+          float warn = ${psi_warn};
+          float crit = ${psi_crit};
+          float max_scale = ${max_psi};
+          int idx = id(detail_sensor);
+
+          // Header
+          it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
+          it.printf(4, 2, id(font_small), id(color_white), "Detail View");
+          if (!std::isnan(id(wifi_rssi).state)) {
+            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+          }
+
+          float sensors[4] = {
+            id(pressure_1).state,
+            id(pressure_2).state,
+            id(pressure_3).state,
+            id(pressure_4).state
+          };
+          const char* names[4] = {
+            "${pressure_1_name}",
+            "${pressure_2_name}",
+            "${pressure_3_name}",
+            "${pressure_4_name}"
+          };
+
+          float val = sensors[idx];
+
+          // Sensor name
+          it.printf(w / 2, 30, id(font_medium), id(color_white), TextAlign::TOP_CENTER, "%s", names[idx]);
+
+          // Large PSI value
+          Color c = id(color_green);
+          if (!std::isnan(val)) {
+            if (val >= crit) c = id(color_red);
+            else if (val >= warn) c = id(color_yellow);
+            it.printf(w / 2, 58, id(font_large), c, TextAlign::TOP_CENTER, "%.1f PSI", val);
+          } else {
+            it.printf(w / 2, 58, id(font_large), id(color_gray), TextAlign::TOP_CENTER, "--- PSI");
+          }
+
+          // Min / Max
+          float mn = id(min_psi)[idx];
+          float mx = id(max_psi)[idx];
+          if (mn < 900.0f) {
+            it.printf(20, 100, id(font_small), id(color_cyan), "Min: %.1f", mn);
+          } else {
+            it.printf(20, 100, id(font_small), id(color_gray), "Min: ---");
+          }
+          if (mx >= 0.0f) {
+            it.printf(w - 20, 100, id(font_small), id(color_cyan), TextAlign::TOP_RIGHT, "Max: %.1f", mx);
+          } else {
+            it.printf(w - 20, 100, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "Max: ---");
+          }
+
+          // Bar gauge
+          int bar_x = 20;
+          int bar_y = 122;
+          int bar_w = w - 40;
+          int bar_h = 20;
+          it.rectangle(bar_x, bar_y, bar_w, bar_h, id(color_gray));
+          if (!std::isnan(val) && val > 0) {
+            int fill_w = (int)(val / max_scale * bar_w);
+            if (fill_w > bar_w) fill_w = bar_w;
+            it.filled_rectangle(bar_x + 1, bar_y + 1, fill_w - 2, bar_h - 2, c);
+          }
+
+          // Sensor index indicator
+          it.printf(w / 2, h - 14, id(font_small), id(color_gray), TextAlign::TOP_CENTER, "[Btn2: next sensor]");
+
+      - id: page_minmax
+        lambda: |-
+          int w = it.get_width();
+          int h = it.get_height();
+
+          // Header
+          it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
+          it.printf(4, 2, id(font_small), id(color_white), "Min / Max");
+          if (!std::isnan(id(wifi_rssi).state)) {
+            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+          }
+
+          float sensors[4] = {
+            id(pressure_1).state,
+            id(pressure_2).state,
+            id(pressure_3).state,
+            id(pressure_4).state
+          };
+          const char* names[4] = {
+            "${pressure_1_name}",
+            "${pressure_2_name}",
+            "${pressure_3_name}",
+            "${pressure_4_name}"
+          };
+
+          int row_h = (h - 28) / 4;
+          int top = 26;
+
+          for (int i = 0; i < 4; i++) {
+            int y = top + i * row_h;
+            it.print(4, y, id(font_small), id(color_gray), names[i]);
+
+            if (!std::isnan(sensors[i])) {
+              it.printf(160, y, id(font_medium), id(color_white), TextAlign::TOP_LEFT, "%.1f", sensors[i]);
+            } else {
+              it.printf(160, y, id(font_medium), id(color_gray), TextAlign::TOP_LEFT, "---");
+            }
+
+            float mn = id(min_psi)[i];
+            float mx = id(max_psi)[i];
+            if (mn < 900.0f && mx >= 0.0f) {
+              it.printf(w - 4, y, id(font_small), id(color_cyan), TextAlign::TOP_RIGHT, "%.1f / %.1f", mn, mx);
+            }
+          }
+
+          it.printf(w / 2, h - 14, id(font_small), id(color_gray), TextAlign::TOP_CENTER, "[Btn2: reset min/max]");
+
+      - id: page_bars
+        lambda: |-
+          int w = it.get_width();
+          int h = it.get_height();
+          float warn = ${psi_warn};
+          float crit = ${psi_crit};
+          float max_scale = ${max_psi};
+
+          // Header
+          it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
+          it.printf(4, 2, id(font_small), id(color_white), "Bar Graph");
+          if (!std::isnan(id(wifi_rssi).state)) {
+            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+          }
+
+          float sensors[4] = {
+            id(pressure_1).state,
+            id(pressure_2).state,
+            id(pressure_3).state,
+            id(pressure_4).state
+          };
+          const char* names[4] = {
+            "${pressure_1_name}",
+            "${pressure_2_name}",
+            "${pressure_3_name}",
+            "${pressure_4_name}"
+          };
+
+          int bar_area_x = 80;
+          int bar_area_w = w - 140;
+          int row_h = (h - 28) / 4;
+          int top = 26;
+
+          for (int i = 0; i < 4; i++) {
+            int y = top + i * row_h;
+            int bar_y = y + 2;
+            int bar_h = row_h - 8;
+
+            it.print(4, y, id(font_small), id(color_gray), names[i]);
+
+            it.rectangle(bar_area_x, bar_y, bar_area_w, bar_h, id(color_gray));
+
+            if (!std::isnan(sensors[i]) && sensors[i] > 0) {
+              Color c = id(color_green);
+              if (sensors[i] >= crit) c = id(color_red);
+              else if (sensors[i] >= warn) c = id(color_yellow);
+
+              int fill_w = (int)(sensors[i] / max_scale * bar_area_w);
+              if (fill_w > bar_area_w) fill_w = bar_area_w;
+              if (fill_w > 2) {
+                it.filled_rectangle(bar_area_x + 1, bar_y + 1, fill_w - 2, bar_h - 2, c);
+              }
+
+              it.printf(w - 4, y, id(font_small), id(color_white), TextAlign::TOP_RIGHT, "%.1f", sensors[i]);
+            } else {
+              it.printf(w - 4, y, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "---");
+            }
+          }

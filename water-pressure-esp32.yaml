@@ -1,16 +1,15 @@
 substitutions:
   name: "water-pressure"
   friendly_name: "Water Pressure Monitor"
-  board: "esp32dev"
 
   update_interval: "5s"
 
   # Pressure transducer max rating (PSI)
   max_psi: "200"
 
-  # Voltage divider correction factor: (R1 + R2) / R2
-  # Default assumes R1=4.7k, R2=10k -> 14.7/10 = 1.47
-  voltage_divider_factor: "1.47"
+  # PSI color thresholds for display
+  psi_warn: "80"
+  psi_crit: "120"
 
   # Sensor friendly names
   pressure_1_name: "Pressure 1"
@@ -18,11 +17,12 @@ substitutions:
   pressure_3_name: "Pressure 3"
   pressure_4_name: "Pressure 4"
 
-  # ADC GPIO pins (must be ADC1 channels to avoid WiFi conflicts)
-  pressure_1_pin: "GPIO32"
-  pressure_2_pin: "GPIO33"
-  pressure_3_pin: "GPIO34"
-  pressure_4_pin: "GPIO35"
+  # I2C pins (Qwiic/Stemma connector on T-Display-S3)
+  i2c_sda: "GPIO43"
+  i2c_scl: "GPIO44"
+
+  # ADS1115 I2C address (0x48 = ADDR to GND, 0x49 = ADDR to VCC)
+  ads1115_address: "0x48"
 
 esphome:
   name: "${name}"
@@ -30,12 +30,27 @@ esphome:
   name_add_mac_suffix: true
   project:
     name: water-pressure.monitor
-    version: "1.0.0"
+    version: "3.0.0"
 
 esp32:
-  board: ${board}
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
   framework:
     type: esp-idf
+
+psram:
+  speed: 80MHz
+  mode: octal
+
+i2c:
+  sda: ${i2c_sda}
+  scl: ${i2c_scl}
+  id: bus_ads1115
+
+ads1115:
+  - id: ads1115_hub
+    address: ${ads1115_address}
 
 logger:
 
@@ -65,40 +80,39 @@ packages:
     vars:
       sensor_id: pressure_1
       sensor_name: "${pressure_1_name}"
-      sensor_pin: "${pressure_1_pin}"
+      sensor_channel: "A0_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
-      sensor_voltage_divider_factor: "${voltage_divider_factor}"
   pressure_sensor_2: !include
     file: common/pressure-sensor.yaml
     vars:
       sensor_id: pressure_2
       sensor_name: "${pressure_2_name}"
-      sensor_pin: "${pressure_2_pin}"
+      sensor_channel: "A1_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
-      sensor_voltage_divider_factor: "${voltage_divider_factor}"
   pressure_sensor_3: !include
     file: common/pressure-sensor.yaml
     vars:
       sensor_id: pressure_3
       sensor_name: "${pressure_3_name}"
-      sensor_pin: "${pressure_3_pin}"
+      sensor_channel: "A2_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
-      sensor_voltage_divider_factor: "${voltage_divider_factor}"
   pressure_sensor_4: !include
     file: common/pressure-sensor.yaml
     vars:
       sensor_id: pressure_4
       sensor_name: "${pressure_4_name}"
-      sensor_pin: "${pressure_4_pin}"
+      sensor_channel: "A3_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
-      sensor_voltage_divider_factor: "${voltage_divider_factor}"
+  display_config: !include common/display.yaml
+  buttons_config: !include common/buttons.yaml
 
 sensor:
   - platform: wifi_signal
+    id: wifi_rssi
     name: "WiFi Signal"
     update_interval: 60s
     entity_category: diagnostic

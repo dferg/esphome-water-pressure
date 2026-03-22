@@ -1,9 +1,10 @@
 sensor:
-  - platform: adc
+  - platform: ads1115
+    ads1115_id: ads1115_hub
+    multiplexer: ${sensor_channel}
+    gain: 6.144
     id: ${sensor_id}_voltage
-    pin: ${sensor_pin}
     name: "${sensor_name} Voltage"
-    attenuation: auto
     update_interval: ${sensor_update_interval}
     unit_of_measurement: "V"
     accuracy_decimals: 3
@@ -14,7 +15,6 @@ sensor:
           window_size: 5
           send_every: 5
           send_first_at: 1
-      - multiply: ${sensor_voltage_divider_factor}
 
   - platform: copy
     id: ${sensor_id}

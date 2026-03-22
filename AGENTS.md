@@ -1,111 +1,122 @@
-# Agent Instructions — Water Pressure Monitor
+# Agent Instructions -- Water Pressure Monitor
 
 ## Project Overview
 
-ESPHome firmware for an ESP32 that reads four FUSCH 200 PSI pressure
-transducers via ADC and reports PSI values to Home Assistant.
+ESPHome firmware for a LILYGO T-Display-S3 that reads four FUSCH 200 PSI
+pressure transducers via a QCRobot ADS1115 16-bit ADC over I2C, displays
+live readings on the built-in 1.9" LCD, and reports PSI values to Home
+Assistant.
 
 ## Architecture
 
 ```
 water-pressure-esp32.yaml          (entry point)
-  └─ packages:
-       ├─ common/pressure-sensor.yaml   vars: sensor 1
-       ├─ common/pressure-sensor.yaml   vars: sensor 2
-       ├─ common/pressure-sensor.yaml   vars: sensor 3
-       └─ common/pressure-sensor.yaml   vars: sensor 4
+  ├── esp32-s3 + psram + i2c + ads1115
+  ├── packages:
+  │     ├── common/pressure-sensor.yaml   vars: A0_GND (x4)
+  │     ├── common/display.yaml           SPI, LCD, pages, fonts, colors, globals
+  │     └── common/buttons.yaml           GPIO0 + GPIO14 handlers
+  └── wifi_signal, uptime, restart
 ```
-
-The main YAML declares substitutions with defaults and includes the sensor
-template four times using ESPHome's packages-as-templates feature.  Each
-inclusion passes a unique `sensor_id`, `sensor_pin`, and `sensor_name` via
-`vars`.
-
-Consumers pull the package from a remote git repository and override
-substitutions in their own YAML (see `example.yaml`).
 
 ## File Responsibilities
 
 | File | Purpose |
 |------|---------|
-| `water-pressure-esp32.yaml` | Device definition: substitutions, ESP32 platform, connectivity, dashboard import, package includes |
-| `common/pressure-sensor.yaml` | Reusable single-sensor template: ADC config, filter chain, diagnostic voltage entity |
-| `example.yaml` | Reference consumer config demonstrating remote package usage and overrides |
-| `README.md` | Human-facing docs: BOM, wiring, setup, calibration, troubleshooting |
-| `AGENTS.md` | This file — AI agent guidance |
+| `water-pressure-esp32.yaml` | Substitutions, ESP32-S3 platform, PSRAM, I2C, ADS1115 hub, package includes |
+| `common/pressure-sensor.yaml` | Reusable single-sensor template: ADS1115 + copy for PSI |
+| `common/display.yaml` | Octal SPI bus, mipi_spi display, backlight, fonts, colors, globals, 4 page lambdas, min/max interval |
+| `common/buttons.yaml` | GPIO0 (page cycle) and GPIO14 (context action) binary sensors |
+| `common/roboto.ttf` | Roboto font for display rendering |
+| `example.yaml` | Consumer config demonstrating remote package usage |
+| `README.md` | Human-facing docs |
+| `AGENTS.md` | This file |
+
+## Hardware
+
+- **Board:** LILYGO T-Display-S3 (ESP32-S3, 16MB flash, 8MB PSRAM)
+- **Display:** 1.9" ST7789 LCD, 320x170 landscape, octal SPI via mipi_spi
+- **ADC:** QCRobot ADS1115, VDD=5V (analog range), I2C=3.3V logic
+- **I2C:** GPIO43 (SDA), GPIO44 (SCL) via Qwiic/Stemma connector
+- **Buttons:** GPIO0 (Button 1, left), GPIO14 (Button 2, right)
+- **Backlight:** GPIO38 via LEDC PWM
 
 ## Substitution Conventions
 
-- All substitutions are declared in `water-pressure-esp32.yaml` with sensible
-  defaults so the package works out of the box.
-- Sensor-specific substitutions follow the pattern `pressure_N_name`,
-  `pressure_N_pin` where N is 1–4.
-- Template vars in `common/pressure-sensor.yaml` are prefixed with `sensor_`
-  to avoid collisions with top-level substitutions.
-- Consumers override substitutions in their own YAML; the package itself never
-  references `!secret`.
+- All substitutions declared in `water-pressure-esp32.yaml` with defaults.
+- Sensor names: `pressure_N_name` (N = 1-4).
+- Display thresholds: `psi_warn` (yellow), `psi_crit` (red).
+- I2C: `i2c_sda`, `i2c_scl`, `ads1115_address`.
+- Template vars in `common/pressure-sensor.yaml` prefixed with `sensor_`.
+- Package never references `!secret`.
+
+## Display Pages
+
+| Page | ID | Content | Button 2 Action |
+|------|----|---------|-----------------|
+| 1 | `page_dashboard` | 2x2 grid, all sensors, color-coded PSI | None |
+| 2 | `page_detail` | Single sensor large, min/max, bar gauge | Cycle sensor |
+| 3 | `page_minmax` | All sensors list with min/max | Reset min/max |
+| 4 | `page_bars` | Horizontal bar chart, all sensors | None |
+
+Button 1 (GPIO0) cycles pages sequentially.
+
+## Globals
+
+| ID | Type | Purpose |
+|----|------|---------|
+| `detail_sensor` | `int` | Index (0-3) of sensor shown on detail page |
+| `min_psi` | `float[4]` | Tracked minimum PSI per sensor |
+| `max_psi` | `float[4]` | Tracked maximum PSI per sensor |
+
+Min/max are updated every 2 seconds by an interval component.
+Reset by Button 2 on the min/max page.
 
 ## Sensor Architecture
 
-Each sensor channel produces two Home Assistant entities from a single ADC
-read using the `copy` platform:
+Each channel produces two HA entities from a single ADS1115 read using `copy`:
 
-1. **Voltage sensor** (`${sensor_id}_voltage`, diagnostic) — the ADC sensor.
-   Filter chain: median (window 5) then multiply by `voltage_divider_factor`.
-   Reports recovered transducer signal voltage in volts.
+1. **Voltage sensor** (`${sensor_id}_voltage`, diagnostic) -- `platform: ads1115`.
+   Filter: median (window 5). Gain 6.144 for 0-4.5V range.
 
-2. **PSI sensor** (`${sensor_id}`, normal) — a `copy` of the voltage sensor.
-   Applies a lambda that converts voltage to PSI:
+2. **PSI sensor** (`${sensor_id}`, normal) -- `platform: copy`.
+   Lambda: `PSI = (V - 0.5) / 4.0 * max_psi`, clamped at 0.
 
-```
-PSI = (V_sensor - 0.5) / 4.0 * max_psi
-```
+## Font Conventions
 
-Where:
-- 0.5 V is the transducer output at 0 PSI
-- 4.0 V is the span (4.5 V - 0.5 V)
-- `max_psi` is the transducer full-scale rating (default 200)
+Three sizes from `common/roboto.ttf`:
 
-Negative results are clamped to 0.
+| ID | Size | Usage |
+|----|------|-------|
+| `font_large` | 32px | Detail view PSI value |
+| `font_medium` | 20px | Dashboard PSI, list values |
+| `font_small` | 14px | Headers, labels, min/max, hints |
 
-Using `copy` instead of a second `adc` sensor avoids ESPHome's "pin used in
-multiple places" validation error and eliminates redundant ADC reads.
+Glyph sets are kept minimal to reduce flash usage. When adding new text to
+lambdas, ensure required characters are in the relevant font's `glyphs` list.
 
-## Calibration Math Reference
+## Color Conventions
 
-### Voltage Divider
-
-```
-V_adc = V_sensor * R2 / (R1 + R2)
-V_sensor = V_adc * (R1 + R2) / R2
-```
-
-Default: R1 = 4.7 kΩ, R2 = 10 kΩ → factor = 1.47
-
-### PSI Conversion
-
-The FUSCH transducer outputs a linear 0.5–4.5 V signal across its rated
-pressure range:
-
-```
-PSI = (V_sensor - 0.5) / 4.0 * max_psi
-```
-
-### calibrate_linear Override
-
-For multi-point calibration, consumers append a `calibrate_linear` filter
-using `!extend` on the sensor ID.  Because `!extend` concatenates filter
-lists, the calibration runs after the default multiply + lambda chain.
-Datapoints map uncalibrated PSI readings (from Home Assistant) to reference
-gauge PSI.  Use `method: exact` for piecewise-linear interpolation.
+| ID | Hex | Usage |
+|----|-----|-------|
+| `color_green` | 00CC44 | PSI below warn threshold |
+| `color_yellow` | DDAA00 | PSI at/above warn, below crit |
+| `color_red` | DD2200 | PSI at/above crit threshold |
+| `color_white` | FFFFFF | Primary text |
+| `color_gray` | 888888 | Labels, secondary text |
+| `color_dark_gray` | 333333 | Header bar background |
+| `color_cyan` | 00BBCC | Min/max values |
+| `color_bg` | 000000 | Screen background |
 
 ## Editing Guidelines
 
-- Keep the sensor template (`common/pressure-sensor.yaml`) generic.  It must
-  work when included multiple times with different vars.
-- Never add `!secret` references to package files; use substitutions instead.
+- Keep `common/pressure-sensor.yaml` generic (no display references).
+- Keep display lambdas in `common/display.yaml`, button logic in
+  `common/buttons.yaml`.
+- Never add `!secret` references to package files.
 - When adding new substitutions, always provide a default value.
-- Pin assignments must stay on ADC1 (GPIO32–GPIO39) to avoid WiFi conflicts.
+- When adding new display text, verify glyphs are in the font definition.
+- ADS1115 multiplexer channels: A0_GND through A3_GND.
 
 ## Validation
 
@@ -115,5 +126,5 @@ After any YAML changes, validate syntax by running:
 /opt/homebrew/bin/esphome config water-pressure-esp32.yaml
 ```
 
-The command must exit with `Configuration is valid!` and exit code 0.  Fix
+The command must exit with `Configuration is valid!` and exit code 0. Fix
 all errors before considering a change complete.

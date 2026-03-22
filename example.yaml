@@ -17,8 +17,16 @@ substitutions:
   # Override if your transducers have a different PSI rating
   # max_psi: "150"
 
-  # Override if you measured a different voltage divider factor (see README)
-  # voltage_divider_factor: "1.52"
+  # Display color thresholds (PSI)
+  # psi_warn: "80"
+  # psi_crit: "120"
+
+  # Override I2C pins if your board uses different wiring
+  # i2c_sda: "GPIO43"
+  # i2c_scl: "GPIO44"
+
+  # ADS1115 address (0x49 if ADDR pin tied to VCC)
+  # ads1115_address: "0x49"
 
   # Slower update interval to reduce network traffic
   update_interval: "10s"

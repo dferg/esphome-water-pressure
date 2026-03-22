@@ -33,7 +33,7 @@ substitutions:
 
 packages:
   water_pressure:
-    url: https://github.com/USERNAME/water-pressure
+    url: https://github.com/dferg/esphome-water-pressure
     files: [water-pressure-esp32.yaml]
     ref: main
     refresh: 1d

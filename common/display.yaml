@@ -27,16 +27,18 @@ light:
     restore_mode: ALWAYS_ON
     default_transition_length: 0s
 
+# Use Google Fonts so remote-package installs work (local paths resolve from the
+# consumer's config directory, not the GitHub package cache).
 font:
-  - file: common/roboto.ttf
+  - file: "gfonts://Roboto"
     id: font_large
     size: 32
     glyphs: " 0123456789.-/PSIpsi"
-  - file: common/roboto.ttf
+  - file: "gfonts://Roboto"
     id: font_medium
     size: 20
     glyphs: " 0123456789.-/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-  - file: common/roboto.ttf
+  - file: "gfonts://Roboto"
     id: font_small
     size: 14
     glyphs: " 0123456789.-/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz[]"

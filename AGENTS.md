@@ -27,7 +27,6 @@ water-pressure-esp32.yaml          (entry point)
 | `common/pressure-sensor.yaml` | Reusable single-sensor template: ADS1115 + copy for PSI |
 | `common/display.yaml` | Octal SPI bus, mipi_spi display, backlight, fonts, colors, globals, 4 page lambdas, min/max interval |
 | `common/buttons.yaml` | GPIO0 (page cycle) and GPIO14 (context action) binary sensors |
-| `common/roboto.ttf` | Roboto font for display rendering |
 | `example.yaml` | Consumer config demonstrating remote package usage |
 | `README.md` | Human-facing docs |
 | `AGENTS.md` | This file |
@@ -84,7 +83,9 @@ Each channel produces two HA entities from a single ADS1115 read using `copy`:
 
 ## Font Conventions
 
-Three sizes from `common/roboto.ttf`:
+Three sizes from **Google Fonts** (`gfonts://Roboto` in `common/display.yaml`).
+This avoids local `file:` paths that break when the YAML is pulled as a remote
+package (paths resolve from the consumer's config directory, not the repo).
 
 | ID | Size | Usage |
 |----|------|-------|

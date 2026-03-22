@@ -109,6 +109,10 @@ labels for quick visual comparison.
 
 ### Quick Start (ESPHome Dashboard)
 
+Display fonts are loaded from **Google Fonts** at compile time (`gfonts://Roboto`).
+The machine running ESPHome needs internet access when you click **Install**
+(or run `esphome compile`).  The font is cached afterward.
+
 1. Copy `example.yaml` into your ESPHome configuration directory.
 2. Rename it to match your device (e.g. `water-pressure.yaml`).
 3. Edit the `substitutions` section -- at minimum set sensor names.
@@ -220,6 +224,7 @@ Sensor: ___________________________  Date: ____________
 | Display blank | Backlight off | Check LCD Backlight entity in HA |
 | Negative PSI readings | Transducer offset | Perform Tier 1 calibration |
 | Min/Max stuck at initial | No readings yet | Wait for first sensor update |
+| Font / compile error | Offline build host, firewall | Allow ESPHome to reach Google Fonts at compile time |
 
 ## Project Structure
 
@@ -230,9 +235,8 @@ water-pressure/
 ├── water-pressure-esp32.yaml        # Main ESPHome package (entry point)
 ├── common/
 │   ├── pressure-sensor.yaml         # Sensor template (included 4x)
-│   ├── display.yaml                 # Display config, pages, fonts, colors
-│   ├── buttons.yaml                 # Button definitions and actions
-│   └── roboto.ttf                   # Font file for display rendering
+│   ├── display.yaml                 # Display config, pages, fonts (Google Fonts), colors
+│   └── buttons.yaml                 # Button definitions and actions
 └── example.yaml                     # Example consumer configuration
 ```
 

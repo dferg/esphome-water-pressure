@@ -126,6 +126,53 @@ The machine running ESPHome needs internet access when you click **Install**
 esphome run example.yaml
 ```
 
+## Recovery: lost IP, wrong `.local` name, or blank display
+
+### Why `my-water-pressure.local` does not resolve
+
+The firmware defaults to **`name_add_mac_suffix: true`**.  The mDNS hostname is
+**`<name>-<last 6 hex chars of MAC>.local`**, not plain `<name>.local`.
+
+Example: `my-water-pressure-a1b2c3.local` (exact suffix comes from your chip).
+
+**Fix for next flash:** In your consumer YAML, set:
+
+```yaml
+substitutions:
+  name_add_mac_suffix: "false"
+```
+
+Then reinstall.  Use this only when you have a single device with that `name`.
+
+### Find the device anyway
+
+1. **USB serial logs** (best): connect USB, then run (adjust port and config path):
+
+   ```bash
+   esphome logs my-water-pressure.yaml --device /dev/ttyACM0
+   ```
+
+   On macOS the port is often `/dev/cu.usbmodem*` or `/dev/cu.usbserial*`.
+   Boot logs show WiFi IP, connection status, and the full device name.
+
+2. **Router DHCP / ARP:** Check your router's client list for a hostname
+   containing `my-water-pressure` or `esphome`.
+
+3. **Fallback AP:** If WiFi credentials are wrong, after a timeout the device
+   opens an access point (merged from the package).  Connect to the
+   **Fallback Hotspot** SSID (name includes your device name), password
+   **`12345678`**, then use the captive portal to set WiFi again.
+
+### Blank display
+
+The LCD backlight is a Home Assistant **light** entity (`LCD Backlight`).
+After a clean boot it should restore **on**.  If the screen stays black:
+
+- Watch **serial logs** for boot loops, I2C errors, or exceptions.
+- Try a **USB power-only** boot (some hubs share power poorly with the display).
+- Reflash; temporarily set `name_add_mac_suffix: "false"` and fix WiFi so you
+  can reach the API and toggle the backlight entity.
+
 ## Configuration Reference
 
 All behaviour is controlled through `substitutions`. Override any of these
@@ -134,6 +181,7 @@ in your consumer YAML to customise the device without editing the package.
 | Substitution | Default | Description |
 |--------------|---------|-------------|
 | `name` | `water-pressure` | Device name (mDNS, entity IDs) |
+| `name_add_mac_suffix` | `true` | If true, hostname is `<name>-<mac>.local` |
 | `friendly_name` | `Water Pressure Monitor` | Human-readable name in HA |
 | `update_interval` | `5s` | Sensor sampling interval |
 | `max_psi` | `200` | Full-scale PSI of transducer |

@@ -8,6 +8,10 @@ substitutions:
   name: "my-water-pressure"
   friendly_name: "Home Water Pressure"
 
+  # Predictable mDNS: use false so the device is my-water-pressure.local
+  # (not my-water-pressure-XXXXXX.local).  Use only if you have one device.
+  # name_add_mac_suffix: "false"
+
   # Give each sensor a meaningful label for your installation
   pressure_1_name: "Main Supply"
   pressure_2_name: "Zone 1"

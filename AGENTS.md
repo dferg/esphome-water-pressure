@@ -43,6 +43,8 @@ water-pressure-esp32.yaml          (entry point)
 ## Substitution Conventions
 
 - All substitutions declared in `water-pressure-esp32.yaml` with defaults.
+- `name_add_mac_suffix` (default `true`): when true, mDNS is `<name>-<mac>.local`.
+  Consumers may set `"false"` for a fixed `<name>.local` (single device only).
 - Sensor names: `pressure_N_name` (N = 1-4).
 - Display thresholds: `psi_warn` (yellow), `psi_crit` (red).
 - I2C: `i2c_sda`, `i2c_scl`, `ads1115_address`.

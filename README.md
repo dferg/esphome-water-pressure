@@ -29,18 +29,18 @@ Each transducer has three wires:
 ### System Connections
 
 ```
-    T-Display-S3                QCRobot ADS1115
-   ┌────────────┐              ┌───────────┐
-   │ USB-C (5V) │              │ VDD       ├──── 5V supply
-   │            │              │           │
-   │ Qwiic port │──Qwiic───── │ I2C port  │  (3.3V logic)
-   │ (3.3V I2C) │  cable      │           │
-   │            │              │ AIN0      ├──── Transducer 1 Signal
-   │   Display  │              │ AIN1      ├──── Transducer 2 Signal
-   │   (built   │              │ AIN2      ├──── Transducer 3 Signal
-   │    in)     │              │ AIN3      ├──── Transducer 4 Signal
-   └────────────┘              │ GND       ├──── Common GND
-                               └───────────┘
+    T-Display-S3              QCRobot ADS1115
+   ┌────────────┐            ┌───────────┐
+   │ USB-C (5V) │            │ VDD       ├──── 5V supply
+   │            │            │           │
+   │ Qwiic port │──Qwiic─────│ I2C port  │  (3.3V logic)
+   │ (3.3V I2C) │  cable     │           │
+   │            │            │ AIN0      ├──── Transducer 1 Signal
+   │   Display  │            │ AIN1      ├──── Transducer 2 Signal
+   │   (built   │            │ AIN2      ├──── Transducer 3 Signal
+   │    in)     │            │ AIN3      ├──── Transducer 4 Signal
+   └────────────┘            │ GND       ├──── Common GND
+                             └───────────┘
 ```
 
 ### I2C / Qwiic Connection
@@ -194,40 +194,113 @@ in your consumer YAML to customise the device without editing the package.
 | `i2c_sda` | `GPIO43` | I2C data pin |
 | `i2c_scl` | `GPIO44` | I2C clock pin |
 | `ads1115_address` | `0x48` | ADS1115 I2C address |
+| `pressure_1_cal_mult` … `pressure_4_cal_mult` | `1.0` | Span scale (see Calibration) |
+| `pressure_1_cal_offset` … `pressure_4_cal_offset` | `0.0` | PSI added after scale (see Calibration) |
 
-## Calibration
+## Calibration (step-by-step for new users)
 
-Each sensor exposes a **diagnostic voltage entity** (e.g. "Pressure 1 Voltage")
-that reports the transducer signal voltage.
+Each channel has a **diagnostic entity** in Home Assistant named like
+**"Main Supply Voltage"** (your sensor name + ` Voltage`). It shows the
+recovered transducer signal in volts (~0.5 V at 0 PSI, ~4.5 V at full scale
+for a 200 PSI sensor). Use it to sanity-check wiring before trusting PSI.
 
-### Tier 1 -- Zero-Point Offset Correction
+The reported **PSI** is computed in firmware, then your **calibration
+substitutions** are applied:
 
-If the PSI reading at 0 pressure is slightly off:
+```text
+PSI_final = (PSI_raw × cal_mult) + cal_offset
+```
 
-1. Open the transducer to atmosphere (0 PSI gauge).
-2. Note the PSI reading in Home Assistant (e.g. 2.3 PSI).
-3. Add an offset filter via `!extend`:
+Defaults are `cal_mult: 1.0` and `cal_offset: 0.0` (no change). Set these in
+**your** consumer YAML under `substitutions:` (same file as `packages:` and
+`wifi:`). Flash again after each change.
+
+### Step 1 -- Zero PSI (atmospheric) offset
+
+Do this **first** for each sensor that reads wrong at no pressure.
+
+1. **Relieve pressure:** Open the transducer to atmosphere (disconnected from
+   pressurized plumbing, or a vented port). True gauge pressure ≈ 0 PSI.
+2. **Read Home Assistant:** Note the **PSI** entity (not Voltage), e.g. it
+   shows `2.3` PSI but should be `0`.
+3. **Compute offset:** You want to subtract the error.
+
+   `cal_offset = -(what HA shows at 0 PSI)`
+
+   Example: HA shows `2.3` → set `pressure_1_cal_offset: "-2.3"`.
+4. **Add to your YAML** (example for sensor 1):
 
    ```yaml
-   sensor:
-     - id: !extend pressure_1
-       filters:
-         - offset: -2.3
+   substitutions:
+     pressure_1_cal_offset: "-2.3"
    ```
 
-4. Reinstall.
+5. **Install** the firmware again. Recheck at 0 PSI; tweak if needed.
 
-### Tier 2 -- Multi-Point Calibration
+Leave `pressure_N_cal_mult` at `1.0` until Step 2.
 
-For the highest accuracy, calibrate against a trusted reference gauge.
-ESPHome's `calibrate_linear` filter with `method: exact` provides
-piecewise-linear interpolation.
+### Step 2 -- Span correction (optional)
 
-Because `!extend` appends filters after the existing chain, this maps
-**uncalibrated PSI readings to reference PSI readings**.
+Use when **zero looks good** but **high pressure** does not match a trusted
+reference gauge.
 
-1. At several setpoints, record HA PSI and reference gauge PSI.
-2. Add a `calibrate_linear` filter:
+1. Apply a known stable pressure (e.g. ~100 PSI) and read **HA PSI** and the
+   **reference gauge**.
+2. **Multiplier** (simple scaling, keeps your offset from Step 1 in mind):
+
+   `cal_mult ≈ (reference_PSI) / (HA_PSI_before_mult)`
+
+   Only use the HA reading **before** you would apply mult/offset, or
+   temporarily set `cal_offset` back to `0.0` to measure raw error, then set
+   both together. Easiest: after Step 1 is done, at a high point:
+
+   - Let `R` = HA PSI at the reference point (with offset already applied).
+   - Let `T` = true reference PSI.
+
+   Then `cal_mult_new = cal_mult_old * (T / R)`.
+
+   Example: after offset, HA reads `95` at true `100`, mult was `1.0` →
+   `cal_mult = 1.0 * (100 / 95) = 1.053` →
+
+   ```yaml
+   pressure_1_cal_mult: "1.053"
+   ```
+
+3. **Install** and verify at low and high pressure.
+
+### Quick reference -- all calibration keys
+
+Set any combination in your consumer `substitutions:` (strings with numbers
+are fine):
+
+| Substitution | Typical use |
+|--------------|-------------|
+| `pressure_1_cal_offset` | Zero correction for sensor 1 (negative of error at 0 PSI) |
+| `pressure_1_cal_mult` | Span scale for sensor 1 (usually 1.0, then adjust after zero) |
+| `pressure_2_cal_offset` … `pressure_4_cal_offset` | Same for sensors 2–4 |
+| `pressure_2_cal_mult` … `pressure_4_cal_mult` | Same for sensors 2–4 |
+
+Example -- two sensors adjusted, two left default:
+
+```yaml
+substitutions:
+  pressure_1_cal_offset: "-1.8"
+  pressure_2_cal_mult: "1.02"
+  pressure_2_cal_offset: "-0.5"
+```
+
+### Step 3 -- Multi-point calibration (advanced)
+
+If the sensor is non-linear or you want many matched points, you can still
+append ESPHome's `calibrate_linear` filter in your consumer YAML. It runs
+**after** mult and offset, and maps **uncalibrated PSI → true PSI** at each
+point.
+
+1. Temporarily set `pressure_N_cal_mult` to `1.0` and `pressure_N_cal_offset`
+   to `0.0` for that sensor (or note readings with your current cal applied
+   and map **displayed** PSI → reference).
+2. Collect pairs `(HA_reading, reference_gauge)` at several pressures.
+3. In your consumer YAML (below `packages:`), add:
 
    ```yaml
    sensor:
@@ -244,21 +317,28 @@ Because `!extend` appends filters after the existing chain, this maps
                - 198.5 -> 200.0
    ```
 
-3. Reinstall.
+   Replace numbers with **your** measurements (left = HA PSI, right =
+   reference PSI).
 
-**Calibration Data Recording Sheet:**
+4. **Install.** For that sensor, you can leave `cal_mult` / `cal_offset` at
+   defaults so `calibrate_linear` does all the work, or combine carefully
+   (linear runs last).
+
+**Recording sheet (print or copy):**
 
 ```
 Sensor: ___________________________  Date: ____________
 
-| Setpoint | HA Reading (PSI) | Reference Gauge (PSI) | Notes |
-|----------|------------------|-----------------------|-------|
-| 1        |                  |                       |       |
-| 2        |                  |                       |       |
-| 3        |                  |                       |       |
-| 4        |                  |                       |       |
-| 5        |                  |                       |       |
-| 6        |                  |                       |       |
+Step 1 (0 PSI):  HA read ______ PSI   ->  pressure_N_cal_offset: ______
+
+Step 2 (high):   Reference ______ PSI   HA read ______ PSI   ->  cal_mult: ______
+
+| Point | Reference (PSI) | HA reading (PSI) | Notes |
+|-------|-----------------|-------------------|-------|
+| 1     |                 |                   |       |
+| 2     |                 |                   |       |
+| 3     |                 |                   |       |
+| 4     |                 |                   |       |
 ```
 
 ## Troubleshooting

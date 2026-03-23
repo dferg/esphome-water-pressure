@@ -31,3 +31,5 @@ sensor:
           float psi = (x - 0.5) / 4.0 * ${sensor_max_psi};
           if (psi < 0) return 0.0;
           return psi;
+      - multiply: ${sensor_cal_mult}
+      - offset: ${sensor_cal_offset}

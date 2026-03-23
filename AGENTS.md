@@ -81,7 +81,11 @@ Each channel produces two HA entities from a single ADS1115 read using `copy`:
    Filter: median (window 5). Gain 6.144 for 0-4.5V range.
 
 2. **PSI sensor** (`${sensor_id}`, normal) -- `platform: copy`.
-   Lambda: `PSI = (V - 0.5) / 4.0 * max_psi`, clamped at 0.
+   Filters: lambda (`PSI = (V - 0.5) / 4.0 * max_psi`, clamped at 0), then
+   `multiply` by `sensor_cal_mult`, then `offset` by `sensor_cal_offset`.
+   Consumer substitutions: `pressure_N_cal_mult` (default `1.0`),
+   `pressure_N_cal_offset` (default `0.0`).  Optional `!extend` +
+   `calibrate_linear` runs after these filters.
 
 ## Font Conventions
 

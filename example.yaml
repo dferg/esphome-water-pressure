@@ -35,6 +35,19 @@ substitutions:
   # Slower update interval to reduce network traffic
   update_interval: "10s"
 
+  # --- Calibration (optional; defaults: mult 1.0, offset 0.0)
+  # Formula: PSI_final = PSI_raw * cal_mult + cal_offset
+  # Step 1 at 0 PSI (atmosphere): cal_offset = -(error you see in HA)
+  #   pressure_1_cal_offset: "-2.3"
+  # Step 2 span (after zero is good): cal_mult ≈ reference / HA_reading
+  #   pressure_1_cal_mult: "1.053"
+  # pressure_2_cal_offset: "0.0"
+  # pressure_2_cal_mult: "1.0"
+  # pressure_3_cal_offset: "0.0"
+  # pressure_3_cal_mult: "1.0"
+  # pressure_4_cal_offset: "0.0"
+  # pressure_4_cal_mult: "1.0"
+
 packages:
   water_pressure:
     url: https://github.com/dferg/esphome-water-pressure

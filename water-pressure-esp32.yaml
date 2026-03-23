@@ -11,6 +11,16 @@ substitutions:
   # Pressure transducer max rating (PSI)
   max_psi: "200"
 
+  # Per-sensor calibration (applied as: PSI_final = PSI_raw * mult + offset)
+  pressure_1_cal_mult: "1.0"
+  pressure_1_cal_offset: "0.0"
+  pressure_2_cal_mult: "1.0"
+  pressure_2_cal_offset: "0.0"
+  pressure_3_cal_mult: "1.0"
+  pressure_3_cal_offset: "0.0"
+  pressure_4_cal_mult: "1.0"
+  pressure_4_cal_offset: "0.0"
+
   # PSI color thresholds for display
   psi_warn: "80"
   psi_crit: "120"
@@ -87,6 +97,8 @@ packages:
       sensor_channel: "A0_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
+      sensor_cal_mult: "${pressure_1_cal_mult}"
+      sensor_cal_offset: "${pressure_1_cal_offset}"
   pressure_sensor_2: !include
     file: common/pressure-sensor.yaml
     vars:
@@ -95,6 +107,8 @@ packages:
       sensor_channel: "A1_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
+      sensor_cal_mult: "${pressure_2_cal_mult}"
+      sensor_cal_offset: "${pressure_2_cal_offset}"
   pressure_sensor_3: !include
     file: common/pressure-sensor.yaml
     vars:
@@ -103,6 +117,8 @@ packages:
       sensor_channel: "A2_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
+      sensor_cal_mult: "${pressure_3_cal_mult}"
+      sensor_cal_offset: "${pressure_3_cal_offset}"
   pressure_sensor_4: !include
     file: common/pressure-sensor.yaml
     vars:
@@ -111,6 +127,8 @@ packages:
       sensor_channel: "A3_GND"
       sensor_update_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
+      sensor_cal_mult: "${pressure_4_cal_mult}"
+      sensor_cal_offset: "${pressure_4_cal_offset}"
   display_config: !include common/display.yaml
   buttons_config: !include common/buttons.yaml
 

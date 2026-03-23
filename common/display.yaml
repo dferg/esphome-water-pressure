@@ -71,6 +71,15 @@ globals:
   - id: max_psi
     type: float[4]
     initial_value: "{-1.0f, -1.0f, -1.0f, -1.0f}"
+  - id: adc_last_ok_ms
+    type: uint32_t
+    initial_value: "0"
+  - id: adc_valid_count
+    type: int
+    initial_value: "0"
+  - id: adc_ever_seen
+    type: bool
+    initial_value: "false"
 
 interval:
   - interval: 2s
@@ -82,11 +91,18 @@ interval:
             id(pressure_3).state,
             id(pressure_4).state
           };
+          int valid_count = 0;
           for (int i = 0; i < 4; i++) {
             if (!std::isnan(vals[i])) {
+              valid_count++;
               if (vals[i] < id(min_psi)[i]) id(min_psi)[i] = vals[i];
               if (vals[i] > id(max_psi)[i]) id(max_psi)[i] = vals[i];
             }
+          }
+          id(adc_valid_count) = valid_count;
+          if (valid_count > 0) {
+            id(adc_last_ok_ms) = millis();
+            id(adc_ever_seen) = true;
           }
 
 display:
@@ -103,12 +119,26 @@ display:
           int h = it.get_height();
           float warn = ${psi_warn};
           float crit = ${psi_crit};
+          char adc_status[16];
+          if (id(adc_valid_count) > 0) {
+            snprintf(adc_status, sizeof(adc_status), "I2C OK");
+          } else if (id(adc_ever_seen)) {
+            uint32_t elapsed_s = (millis() - id(adc_last_ok_ms)) / 1000U;
+            if (elapsed_s < 60U) {
+              snprintf(adc_status, sizeof(adc_status), "ADC %us", (unsigned int) elapsed_s);
+            } else {
+              snprintf(adc_status, sizeof(adc_status), "ADC %um", (unsigned int) (elapsed_s / 60U));
+            }
+          } else {
+            snprintf(adc_status, sizeof(adc_status), "ADC --");
+          }
 
           // Header
           it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
           it.printf(4, 2, id(font_small), id(color_white), "Water Pressure");
+          it.printf(w - 4, 2, id(font_small), id(color_white), TextAlign::TOP_RIGHT, "%s", adc_status);
           if (!std::isnan(id(wifi_rssi).state)) {
-            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+            it.printf(w - 92, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
           }
 
           // 4-quadrant layout below header
@@ -154,12 +184,26 @@ display:
           float crit = ${psi_crit};
           float max_scale = ${max_psi};
           int idx = id(detail_sensor);
+          char adc_status[16];
+          if (id(adc_valid_count) > 0) {
+            snprintf(adc_status, sizeof(adc_status), "I2C OK");
+          } else if (id(adc_ever_seen)) {
+            uint32_t elapsed_s = (millis() - id(adc_last_ok_ms)) / 1000U;
+            if (elapsed_s < 60U) {
+              snprintf(adc_status, sizeof(adc_status), "ADC %us", (unsigned int) elapsed_s);
+            } else {
+              snprintf(adc_status, sizeof(adc_status), "ADC %um", (unsigned int) (elapsed_s / 60U));
+            }
+          } else {
+            snprintf(adc_status, sizeof(adc_status), "ADC --");
+          }
 
           // Header
           it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
           it.printf(4, 2, id(font_small), id(color_white), "Detail View");
+          it.printf(w - 4, 2, id(font_small), id(color_white), TextAlign::TOP_RIGHT, "%s", adc_status);
           if (!std::isnan(id(wifi_rssi).state)) {
-            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+            it.printf(w - 92, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
           }
 
           float sensors[4] = {
@@ -223,12 +267,26 @@ display:
         lambda: |-
           int w = it.get_width();
           int h = it.get_height();
+          char adc_status[16];
+          if (id(adc_valid_count) > 0) {
+            snprintf(adc_status, sizeof(adc_status), "I2C OK");
+          } else if (id(adc_ever_seen)) {
+            uint32_t elapsed_s = (millis() - id(adc_last_ok_ms)) / 1000U;
+            if (elapsed_s < 60U) {
+              snprintf(adc_status, sizeof(adc_status), "ADC %us", (unsigned int) elapsed_s);
+            } else {
+              snprintf(adc_status, sizeof(adc_status), "ADC %um", (unsigned int) (elapsed_s / 60U));
+            }
+          } else {
+            snprintf(adc_status, sizeof(adc_status), "ADC --");
+          }
 
           // Header
           it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
           it.printf(4, 2, id(font_small), id(color_white), "Min / Max");
+          it.printf(w - 4, 2, id(font_small), id(color_white), TextAlign::TOP_RIGHT, "%s", adc_status);
           if (!std::isnan(id(wifi_rssi).state)) {
-            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+            it.printf(w - 92, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
           }
 
           float sensors[4] = {
@@ -273,12 +331,26 @@ display:
           float warn = ${psi_warn};
           float crit = ${psi_crit};
           float max_scale = ${max_psi};
+          char adc_status[16];
+          if (id(adc_valid_count) > 0) {
+            snprintf(adc_status, sizeof(adc_status), "I2C OK");
+          } else if (id(adc_ever_seen)) {
+            uint32_t elapsed_s = (millis() - id(adc_last_ok_ms)) / 1000U;
+            if (elapsed_s < 60U) {
+              snprintf(adc_status, sizeof(adc_status), "ADC %us", (unsigned int) elapsed_s);
+            } else {
+              snprintf(adc_status, sizeof(adc_status), "ADC %um", (unsigned int) (elapsed_s / 60U));
+            }
+          } else {
+            snprintf(adc_status, sizeof(adc_status), "ADC --");
+          }
 
           // Header
           it.filled_rectangle(0, 0, w, 20, id(color_dark_gray));
           it.printf(4, 2, id(font_small), id(color_white), "Bar Graph");
+          it.printf(w - 4, 2, id(font_small), id(color_white), TextAlign::TOP_RIGHT, "%s", adc_status);
           if (!std::isnan(id(wifi_rssi).state)) {
-            it.printf(w - 4, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
+            it.printf(w - 92, 2, id(font_small), id(color_gray), TextAlign::TOP_RIGHT, "%.0f dBm", id(wifi_rssi).state);
           }
 
           float sensors[4] = {

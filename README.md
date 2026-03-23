@@ -100,6 +100,17 @@ labels for quick visual comparison.
 | Button 1 | GPIO0 (left) | Cycle to next display page |
 | Button 2 | GPIO14 (right) | Context-sensitive (see page descriptions) |
 
+### Header status text (WiFi + ADC/I2C)
+
+The top status bar shows compact link health on the right side:
+
+- `I2C OK` - At least one ADC channel is currently reading valid data.
+- `ADC 12s` - ADC has been unavailable for 12 seconds since last good read.
+- `ADC 3m` - ADC has been unavailable for 3 minutes.
+- `ADC --` - No valid ADC sample has ever been seen since boot.
+
+WiFi RSSI (`-67 dBm`) is shown to the left of the ADC status when available.
+
 ## Software Setup
 
 ### Prerequisites
@@ -349,6 +360,9 @@ Step 2 (high):   Reference ______ PSI   HA read ______ PSI   ->  cal_mult: _____
 | Reading pegged at max | ADS1115 VDD not 5V | Wire VDD to 5V supply |
 | Noisy/jumping values | Poor grounding, long wires | Shorten wires, add shielding |
 | I2C errors in log | Bad Qwiic cable, wrong address | Check cable, verify ADDR pin |
+| Header shows `ADC Ns` or `ADC Nm` increasing | No valid ADC data path (I2C/bus/power/address/wiring) | Check ADS1115 power, Qwiic cable, address (`0x48`/`0x49`), and SDA/SCL continuity |
+| Header stuck at `ADC --` | No channel has ever produced a valid sample since boot | Verify transducer power/signals and ADS1115 wiring before calibration |
+| Header shows `I2C OK` but values still wrong | Link up but calibration or plumbing issue | Perform calibration steps and verify reference gauge |
 | Display blank | Backlight off | Check LCD Backlight entity in HA |
 | Negative PSI readings | Transducer offset | Perform Tier 1 calibration |
 | Min/Max stuck at initial | No readings yet | Wait for first sensor update |

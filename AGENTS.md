@@ -62,6 +62,10 @@ water-pressure-esp32.yaml          (entry point)
 
 Button 1 (GPIO0) cycles pages sequentially.
 
+All pages share the same compact right-side header status rendering:
+- ADC/I2C status right-aligned (`I2C OK`, `ADC Ns`, `ADC Nm`, `ADC --`)
+- WiFi RSSI left of ADC status when available.
+
 ## Globals
 
 | ID | Type | Purpose |
@@ -69,9 +73,13 @@ Button 1 (GPIO0) cycles pages sequentially.
 | `detail_sensor` | `int` | Index (0-3) of sensor shown on detail page |
 | `min_psi` | `float[4]` | Tracked minimum PSI per sensor |
 | `max_psi` | `float[4]` | Tracked maximum PSI per sensor |
+| `adc_last_ok_ms` | `uint32_t` | `millis()` timestamp of last valid ADC sample |
+| `adc_valid_count` | `int` | Current count of valid ADC channels (0-4) |
+| `adc_ever_seen` | `bool` | True after the first valid ADC sample |
 
 Min/max are updated every 2 seconds by an interval component.
 Reset by Button 2 on the min/max page.
+ADC link globals are updated in the same interval loop to drive header status text.
 
 ## Sensor Architecture
 

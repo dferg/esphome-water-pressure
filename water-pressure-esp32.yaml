@@ -73,6 +73,9 @@ api:
 ota:
   platform: esphome
 
+web_server:
+  port: 80
+
 wifi:
   ap:
     password: "12345678"

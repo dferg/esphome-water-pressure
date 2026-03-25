@@ -10,6 +10,8 @@ substitutions:
   update_interval: "2s"
   # Fast ADC sampling interval (used for display/internal calculations)
   adc_sample_interval: "250ms"
+  # Serial/log print interval (independent from ADC sampling)
+  log_interval: "5s"
 
   # Pressure transducer max rating (PSI)
   max_psi: "200"
@@ -70,6 +72,7 @@ ads1115:
     address: ${ads1115_address}
 
 logger:
+  level: INFO
 
 api:
 
@@ -78,6 +81,7 @@ ota:
 
 web_server:
   port: 80
+  log: false
 
 wifi:
   ap:
@@ -168,6 +172,20 @@ sensor:
         return NAN;
       }
       return (millis() - id(adc_last_ok_ms)) / 1000.0f;
+
+interval:
+  - interval: ${log_interval}
+    then:
+      - lambda: |-
+          ESP_LOGI(
+            "pressure",
+            "P1=%.1f P2=%.1f P3=%.1f P4=%.1f PSI | ADC=%s",
+            id(pressure_1).state,
+            id(pressure_2).state,
+            id(pressure_3).state,
+            id(pressure_4).state,
+            id(adc_i2c_communication_ok).state ? "OK" : "NO_COMM"
+          );
 
 button:
   - platform: restart

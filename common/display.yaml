@@ -86,10 +86,10 @@ interval:
     then:
       - lambda: |-
           float vals[4] = {
-            id(pressure_1).state,
-            id(pressure_2).state,
-            id(pressure_3).state,
-            id(pressure_4).state
+            id(pressure_1_fast).state,
+            id(pressure_2_fast).state,
+            id(pressure_3_fast).state,
+            id(pressure_4_fast).state
           };
           int valid_count = 0;
           for (int i = 0; i < 4; i++) {
@@ -143,10 +143,10 @@ display:
 
           // 4-quadrant layout below header
           float sensors[4] = {
-            id(pressure_1).state,
-            id(pressure_2).state,
-            id(pressure_3).state,
-            id(pressure_4).state
+            id(pressure_1_fast).state,
+            id(pressure_2_fast).state,
+            id(pressure_3_fast).state,
+            id(pressure_4_fast).state
           };
           const char* names[4] = {
             "${pressure_1_name}",
@@ -207,10 +207,10 @@ display:
           }
 
           float sensors[4] = {
-            id(pressure_1).state,
-            id(pressure_2).state,
-            id(pressure_3).state,
-            id(pressure_4).state
+            id(pressure_1_fast).state,
+            id(pressure_2_fast).state,
+            id(pressure_3_fast).state,
+            id(pressure_4_fast).state
           };
           const char* names[4] = {
             "${pressure_1_name}",
@@ -290,10 +290,10 @@ display:
           }
 
           float sensors[4] = {
-            id(pressure_1).state,
-            id(pressure_2).state,
-            id(pressure_3).state,
-            id(pressure_4).state
+            id(pressure_1_fast).state,
+            id(pressure_2_fast).state,
+            id(pressure_3_fast).state,
+            id(pressure_4_fast).state
           };
           const char* names[4] = {
             "${pressure_1_name}",
@@ -354,10 +354,10 @@ display:
           }
 
           float sensors[4] = {
-            id(pressure_1).state,
-            id(pressure_2).state,
-            id(pressure_3).state,
-            id(pressure_4).state
+            id(pressure_1_fast).state,
+            id(pressure_2_fast).state,
+            id(pressure_3_fast).state,
+            id(pressure_4_fast).state
           };
           const char* names[4] = {
             "${pressure_1_name}",

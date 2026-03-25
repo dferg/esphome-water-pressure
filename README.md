@@ -345,11 +345,11 @@ Step 1 (0 PSI):  HA read ______ PSI   ->  pressure_N_cal_offset: ______
 Step 2 (high):   Reference ______ PSI   HA read ______ PSI   ->  cal_mult: ______
 
 | Point | Reference (PSI) | HA reading (PSI) | Notes |
-|-------|-----------------|-------------------|-------|
-| 1     |                 |                   |       |
-| 2     |                 |                   |       |
-| 3     |                 |                   |       |
-| 4     |                 |                   |       |
+|-------|-----------------|------------------|-------|
+| 1     |                 |                  |       |
+| 2     |                 |                  |       |
+| 3     |                 |                  |       |
+| 4     |                 |                  |       |
 ```
 
 ## Troubleshooting

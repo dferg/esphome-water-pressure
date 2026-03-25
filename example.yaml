@@ -32,8 +32,10 @@ substitutions:
   # ADS1115 address (0x49 if ADDR pin tied to VCC)
   # ads1115_address: "0x49"
 
-  # Slower update interval to reduce network traffic
-  update_interval: "10s"
+  # Home Assistant reporting interval (published entities)
+  update_interval: "2s"
+  # Fast internal ADC sampling for responsive display/min-max tracking
+  # adc_sample_interval: "250ms"
 
   # --- Calibration (optional; defaults: mult 1.0, offset 0.0)
   # Formula: PSI_final = PSI_raw * cal_mult + cal_offset

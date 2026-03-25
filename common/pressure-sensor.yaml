@@ -3,22 +3,42 @@ sensor:
     ads1115_id: ads1115_hub
     multiplexer: ${sensor_channel}
     gain: 6.144
+    id: ${sensor_id}_voltage_raw
+    internal: true
+    update_interval: ${sensor_sample_interval}
+    accuracy_decimals: 3
+    filters:
+      - median:
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+
+  - platform: copy
     id: ${sensor_id}_voltage
+    source_id: ${sensor_id}_voltage_raw
     name: "${sensor_name} Voltage"
-    update_interval: ${sensor_update_interval}
     unit_of_measurement: "V"
     accuracy_decimals: 3
     icon: "mdi:sine-wave"
     entity_category: diagnostic
     filters:
-      - median:
-          window_size: 5
-          send_every: 5
-          send_first_at: 1
+      - throttle_average: ${sensor_report_interval}
+
+  - platform: copy
+    id: ${sensor_id}_fast
+    source_id: ${sensor_id}_voltage_raw
+    internal: true
+    filters:
+      - lambda: |-
+          float psi = (x - 0.5) / 4.0 * ${sensor_max_psi};
+          if (psi < 0) return 0.0;
+          return psi;
+      - multiply: ${sensor_cal_mult}
+      - offset: ${sensor_cal_offset}
 
   - platform: copy
     id: ${sensor_id}
-    source_id: ${sensor_id}_voltage
+    source_id: ${sensor_id}_fast
     name: "${sensor_name}"
     unit_of_measurement: "PSI"
     accuracy_decimals: 1
@@ -27,9 +47,4 @@ sensor:
     state_class: measurement
     entity_category: ""
     filters:
-      - lambda: |-
-          float psi = (x - 0.5) / 4.0 * ${sensor_max_psi};
-          if (psi < 0) return 0.0;
-          return psi;
-      - multiply: ${sensor_cal_mult}
-      - offset: ${sensor_cal_offset}
+      - throttle_average: ${sensor_report_interval}

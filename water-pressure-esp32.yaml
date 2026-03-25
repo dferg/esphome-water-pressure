@@ -6,7 +6,10 @@ substitutions:
   # Set to false in your consumer YAML for a fixed <name>.local (only one device per name).
   name_add_mac_suffix: "true"
 
-  update_interval: "5s"
+  # Home Assistant report interval (published sensors)
+  update_interval: "2s"
+  # Fast ADC sampling interval (used for display/internal calculations)
+  adc_sample_interval: "250ms"
 
   # Pressure transducer max rating (PSI)
   max_psi: "200"
@@ -98,7 +101,8 @@ packages:
       sensor_id: pressure_1
       sensor_name: "${pressure_1_name}"
       sensor_channel: "A0_GND"
-      sensor_update_interval: "${update_interval}"
+      sensor_sample_interval: "${adc_sample_interval}"
+      sensor_report_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
       sensor_cal_mult: "${pressure_1_cal_mult}"
       sensor_cal_offset: "${pressure_1_cal_offset}"
@@ -108,7 +112,8 @@ packages:
       sensor_id: pressure_2
       sensor_name: "${pressure_2_name}"
       sensor_channel: "A1_GND"
-      sensor_update_interval: "${update_interval}"
+      sensor_sample_interval: "${adc_sample_interval}"
+      sensor_report_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
       sensor_cal_mult: "${pressure_2_cal_mult}"
       sensor_cal_offset: "${pressure_2_cal_offset}"
@@ -118,7 +123,8 @@ packages:
       sensor_id: pressure_3
       sensor_name: "${pressure_3_name}"
       sensor_channel: "A2_GND"
-      sensor_update_interval: "${update_interval}"
+      sensor_sample_interval: "${adc_sample_interval}"
+      sensor_report_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
       sensor_cal_mult: "${pressure_3_cal_mult}"
       sensor_cal_offset: "${pressure_3_cal_offset}"
@@ -128,7 +134,8 @@ packages:
       sensor_id: pressure_4
       sensor_name: "${pressure_4_name}"
       sensor_channel: "A3_GND"
-      sensor_update_interval: "${update_interval}"
+      sensor_sample_interval: "${adc_sample_interval}"
+      sensor_report_interval: "${update_interval}"
       sensor_max_psi: "${max_psi}"
       sensor_cal_mult: "${pressure_4_cal_mult}"
       sensor_cal_offset: "${pressure_4_cal_offset}"
@@ -147,7 +154,31 @@ sensor:
     update_interval: 60s
     entity_category: diagnostic
 
+  - platform: template
+    id: adc_last_success_age
+    name: "ADC Last Successful I2C Age"
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    icon: "mdi:timer-outline"
+    state_class: measurement
+    entity_category: diagnostic
+    update_interval: 5s
+    lambda: |-
+      if (!id(adc_ever_seen)) {
+        return NAN;
+      }
+      return (millis() - id(adc_last_ok_ms)) / 1000.0f;
+
 button:
   - platform: restart
     name: "Restart"
     entity_category: config
+
+binary_sensor:
+  - platform: template
+    id: adc_i2c_communication_ok
+    name: "ADC I2C Communication"
+    device_class: connectivity
+    entity_category: diagnostic
+    lambda: |-
+      return id(adc_valid_count) > 0;
